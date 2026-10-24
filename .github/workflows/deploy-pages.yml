@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
       - name: Instalar dependências
         run: npm ci
       - name: Gerar versão de produção
@@ -32,7 +34,7 @@ jobs:
       - name: Enviar arquivos para o Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: ./dist
 
   deploy:
     environment:
