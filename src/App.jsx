@@ -78,7 +78,7 @@ function App({ initialSheet, onSave, onBack }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('shinobi-system:theme') ?? 'dark')
   const [selectedAbility, setSelectedAbility] = useState(null)
   const [selectedSkill, setSelectedSkill] = useState('Taijutsu')
-  const [draftJutsu, setDraftJutsu] = useState({ name: '', rank: '', chakra: '', description: '' })
+  const [draftJutsu, setDraftJutsu] = useState({ name: '', rank: '', chakra: '', resistance: '', damage: '', description: '' })
   const [draftAbility, setDraftAbility] = useState({ name: '', source: 'Personalizada', level: '', description: '' })
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -164,12 +164,12 @@ function App({ initialSheet, onSave, onBack }) {
     const chakra = normalizeDiceCost(draftJutsu.chakra)
     if (!chakra) { setJutsuError('Informe o custo em dados, como 1d8 ou 2d6+2. Um valor fixo, como 8, não é válido.'); return }
     setJutsuError('')
-    const jutsu = { ...draftJutsu, name: draftJutsu.name.trim(), chakra, id: crypto.randomUUID() }
+    const jutsu = { ...draftJutsu, name: draftJutsu.name.trim(), chakra, resistance: draftJutsu.resistance.trim(), damage: draftJutsu.damage.trim(), id: crypto.randomUUID() }
     updateSheet((current) => ({ ...current, jutsus: [...current.jutsus, jutsu] }))
-    setDraftJutsu({ name: '', rank: '', chakra: '', description: '' })
+    setDraftJutsu({ name: '', rank: '', chakra: '', resistance: '', damage: '', description: '' })
   }
 
-  function updateJutsuCost(id, chakra) { updateSheet(current => ({ ...current, jutsus: current.jutsus.map(jutsu => jutsu.id === id ? { ...jutsu, chakra } : jutsu) })) }
+  function updateJutsu(id, field, value) { updateSheet(current => ({ ...current, jutsus: current.jutsus.map(jutsu => jutsu.id === id ? { ...jutsu, [field]: value } : jutsu) })) }
 
   function removeJutsu(id) { updateSheet((current) => ({ ...current, jutsus: current.jutsus.filter((jutsu) => jutsu.id !== id) })) }
   function addCustomAbility(event) {
@@ -230,16 +230,22 @@ function App({ initialSheet, onSave, onBack }) {
         <form className="jutsu-form" onSubmit={addJutsu}>
           <input aria-label="Nome do jutsu" placeholder="Nome do jutsu" required value={draftJutsu.name} onChange={event => setDraftJutsu({ ...draftJutsu, name: event.target.value })} />
           <input aria-label="Rank do jutsu" placeholder="Rank" value={draftJutsu.rank} onChange={event => setDraftJutsu({ ...draftJutsu, rank: event.target.value })} />
-          <label className="jutsu-cost-field">Custo de chakra em dados<input type="text" placeholder="Ex.: 1d8 ou 2d6+2" maxLength={60} required aria-describedby="jutsu-cost-help" aria-invalid={Boolean(jutsuError)} value={draftJutsu.chakra} onChange={event => { setDraftJutsu({ ...draftJutsu, chakra: event.target.value }); setJutsuError('') }} /></label>
+          <label className="jutsu-field">Custo de chakra em dados<input type="text" placeholder="Ex.: 1d8 ou 2d6+2" maxLength={60} required aria-describedby="jutsu-cost-help" aria-invalid={Boolean(jutsuError)} value={draftJutsu.chakra} onChange={event => { setDraftJutsu({ ...draftJutsu, chakra: event.target.value }); setJutsuError('') }} /></label>
           <p id="jutsu-cost-help" className="helper-text">Use quantidade e faces do dado: 1d8, 2d6 ou 1d8+2.</p>
           {jutsuError && <p role="alert" className="account-error">{jutsuError}</p>}
+          <label className="jutsu-field">Resistência<input aria-label="Resistência do jutsu" type="text" maxLength={160} placeholder="Ex.: DEX — metade do dano no sucesso" value={draftJutsu.resistance} onChange={event => setDraftJutsu({ ...draftJutsu, resistance: event.target.value })} /></label>
+          <label className="jutsu-field">Dano<input aria-label="Dano do jutsu" type="text" maxLength={160} placeholder="Ex.: 2d6+3 de fogo ou Sem dano" value={draftJutsu.damage} onChange={event => setDraftJutsu({ ...draftJutsu, damage: event.target.value })} /></label>
           <textarea aria-label="Descrição do jutsu" placeholder="Descrição" value={draftJutsu.description} onChange={event => setDraftJutsu({ ...draftJutsu, description: event.target.value })} />
           <button className="roll-button" type="submit">Adicionar jutsu</button>
         </form>
         <div className="jutsu-list">{sheet.jutsus.map(jutsu => <article className="jutsu-entry" key={jutsu.id}><div><h3>{jutsu.name}</h3>
           <p>{jutsu.rank && `Rank ${jutsu.rank}`}{normalizeDiceCost(jutsu.chakra) && ` · ${normalizeDiceCost(jutsu.chakra)} Chakra`}</p>
           {!normalizeDiceCost(jutsu.chakra) && <p className="helper-text">Custo antigo: {jutsu.chakra === '' || jutsu.chakra == null ? 'não informado' : jutsu.chakra}. Edite a ficha para informar os dados.</p>}
-          {isEditing && <label className="jutsu-cost-field">Custo de {jutsu.name} em dados<input type="text" maxLength={60} placeholder="Ex.: 1d8" value={jutsu.chakra ?? ''} onChange={event => updateJutsuCost(jutsu.id, event.target.value)} onBlur={event => { const cost = normalizeDiceCost(event.target.value); if (cost) updateJutsuCost(jutsu.id, cost) }} /></label>}
+          {isEditing ? <div className="jutsu-edit-fields">
+            <label className="jutsu-field">Custo de {jutsu.name} em dados<input type="text" maxLength={60} placeholder="Ex.: 1d8" value={jutsu.chakra ?? ''} onChange={event => updateJutsu(jutsu.id, 'chakra', event.target.value)} onBlur={event => { const cost = normalizeDiceCost(event.target.value); if (cost) updateJutsu(jutsu.id, 'chakra', cost) }} /></label>
+            <label className="jutsu-field">Resistência de {jutsu.name}<input type="text" maxLength={160} placeholder="Ex.: DEX — metade no sucesso" value={jutsu.resistance ?? ''} onChange={event => updateJutsu(jutsu.id, 'resistance', event.target.value)} /></label>
+            <label className="jutsu-field">Dano de {jutsu.name}<input type="text" maxLength={160} placeholder="Ex.: 2d6+3 de fogo" value={jutsu.damage ?? ''} onChange={event => updateJutsu(jutsu.id, 'damage', event.target.value)} /></label>
+          </div> : <dl className="jutsu-details"><div><dt>Resistência</dt><dd>{jutsu.resistance || 'Não informada'}</dd></div><div><dt>Dano</dt><dd>{jutsu.damage || 'Não informado'}</dd></div></dl>}
           <p>{jutsu.description}</p></div><button type="button" onClick={() => removeJutsu(jutsu.id)} aria-label={`Remover ${jutsu.name}`}>×</button></article>)}{!sheet.jutsus.length && <p className="empty-state">Nenhum jutsu particular cadastrado.</p>}</div>
       </section>}
 

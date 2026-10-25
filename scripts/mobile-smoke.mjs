@@ -99,6 +99,8 @@ try {
       }
     }
     await page.getByLabel('Nome do jutsu', { exact: true }).fill('Katon de teste')
+    await page.getByLabel('Resistência do jutsu', { exact: true }).fill('DEX — metade do dano no sucesso')
+    await page.getByLabel('Dano do jutsu', { exact: true }).fill('2d6 de fogo')
     await page.getByLabel('Custo de chakra em dados', { exact: true }).fill('8')
     await page.getByRole('button', { name: 'Adicionar jutsu', exact: true }).tap()
     await page.getByRole('alert').waitFor()
@@ -106,7 +108,17 @@ try {
     await page.getByLabel('Custo de chakra em dados', { exact: true }).fill(' 2D6 + 2 ')
     await page.getByRole('button', { name: 'Adicionar jutsu', exact: true }).tap()
     assert.match(await page.locator('.jutsu-entry').textContent(), /2d6\+2 Chakra/)
-    await layout('dice chakra cost')
+    assert.equal(await page.getByLabel('Resistência de Katon de teste', { exact: true }).inputValue(), 'DEX — metade do dano no sucesso')
+    assert.equal(await page.getByLabel('Dano de Katon de teste', { exact: true }).inputValue(), '2d6 de fogo')
+    assert.equal(await page.getByLabel('Resistência do jutsu', { exact: true }).inputValue(), '')
+    assert.equal(await page.getByLabel('Dano do jutsu', { exact: true }).inputValue(), '')
+    await page.getByLabel('Resistência de Katon de teste', { exact: true }).fill('CON — metade do dano no sucesso')
+    await page.getByLabel('Dano de Katon de teste', { exact: true }).fill('3d6+2 de fogo')
+    await layout('jutsu damage and resistance editing')
+    await page.getByRole('button', { name: 'Concluir', exact: true }).tap()
+    await page.locator('.jutsu-entry').getByText('CON — metade do dano no sucesso', { exact: true }).waitFor()
+    await page.locator('.jutsu-entry').getByText('3d6+2 de fogo', { exact: true }).waitFor()
+    await layout('jutsu damage and resistance display')
     await page.getByRole('navigation').getByRole('button', { name: /Ficha/ }).tap()
     await page.getByRole('button', { name: 'Diminuir PV', exact: true }).tap()
     await page.getByRole('button', { name: 'Salvar ficha', exact: true }).tap()
@@ -129,6 +141,7 @@ try {
     await layout('saved dashboard')
     const saved = await (await context.request.get(base + '/api/sheets')).json()
     assert.ok(saved.sheets.every(record => record.data.jutsus[0].chakra === '2d6+2'))
+    assert.ok(saved.sheets.every(record => record.data.jutsus[0].resistance === 'CON — metade do dano no sucesso' && record.data.jutsus[0].damage === '3d6+2 de fogo'))
     if (expectedPortrait) assert.ok(saved.sheets.every(record => record.data.portrait === expectedPortrait), 'Full 2.5 MB portrait must survive saving, encounter copying and reloading')
     assert.ok(saved.sheets.every(record => record.data.skills.Percepção.chosen && record.data.skills.Percepção.manualValues.normal === 75))
     if (width === 390) {
@@ -144,12 +157,19 @@ try {
       await page.getByText('Percepção', { exact: true }).waitFor()
       await page.getByRole('navigation').getByRole('button', { name: /Jutsus/ }).tap()
       await page.getByText(/Custo antigo: 8/).waitFor()
+      await page.locator('.jutsu-entry').getByText('Não informada', { exact: true }).waitFor()
+      await page.locator('.jutsu-entry').getByText('Não informado', { exact: true }).waitFor()
       await page.getByRole('button', { name: 'Editar', exact: true }).tap()
       await page.getByLabel('Custo de Técnica antiga em dados', { exact: true }).fill('1d8')
+      await page.getByLabel('Resistência de Técnica antiga', { exact: true }).fill('INT — anula o efeito')
+      await page.getByLabel('Dano de Técnica antiga', { exact: true }).fill('Sem dano')
       await page.getByRole('button', { name: 'Salvar ficha', exact: true }).tap()
       await page.getByText('Ficha salva na sua conta.', { exact: true }).waitFor()
       const updated = await (await context.request.get(base + '/api/sheets')).json()
-      assert.equal(updated.sheets.find(record => record.data.name === 'Personagem antigo').data.jutsus[0].chakra, '1d8')
+      const updatedJutsu = updated.sheets.find(record => record.data.name === 'Personagem antigo').data.jutsus[0]
+      assert.equal(updatedJutsu.chakra, '1d8')
+      assert.equal(updatedJutsu.resistance, 'INT — anula o efeito')
+      assert.equal(updatedJutsu.damage, 'Sem dano')
       await page.getByRole('button', { name: /Minhas fichas/ }).tap()
     }
     if (process.env.MOBILE_SCREENSHOT_DIR && width === 390) {
@@ -158,7 +178,7 @@ try {
     }
     assert.deepEqual(errors, [])
     await context.close()
-    console.log(`Mobile ${width}px: signup, creation, editing, skill filters/order, Percepção, dice costs, 20% Extremo rolls, saved copies and touch controls passed.`)
+    console.log(`Mobile ${width}px: signup, creation, editing, skill filters/order, Percepção, jutsu damage/resistance, dice costs, 20% Extremo rolls, saved copies and touch controls passed.`)
   }
 } finally {
   await browser?.close()

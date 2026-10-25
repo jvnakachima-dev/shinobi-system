@@ -29,10 +29,18 @@ button:disabled { cursor: wait; opacity: .6; }
 .creator-card input { max-width: 100%; }
 @media (max-width: 480px) { .account-shell { padding-top: 24px; } .account-header { align-items: flex-start; } }
 .skill-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 10px; }
-.skill-filters label, .jutsu-cost-field { display: grid; gap: 7px; font-size: .85rem; color: #e4cca7; }
+.skill-filters label, .jutsu-field { display: grid; gap: 7px; font-size: .85rem; color: #e4cca7; }
 .skill-filters select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid #92623a; border-radius: 8px; background: #18110e; color: #fff1d7; font: inherit; }
 .skill-filters + .helper-text { margin-bottom: 12px; }
-.jutsu-cost-field input { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #92623a; border-radius: 8px; background: #18110e; color: #fff1d7; font: inherit; }
-:root[data-theme='light'] .skill-filters label, :root[data-theme='light'] .jutsu-cost-field { color: #5e3b20; }
-:root[data-theme='light'] .skill-filters select, :root[data-theme='light'] .jutsu-cost-field input { background: #fff8e9; color: #422a19; }
+.jutsu-field input { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #92623a; border-radius: 8px; background: #18110e; color: #fff1d7; font: inherit; }
+:root[data-theme='light'] .skill-filters label, :root[data-theme='light'] .jutsu-field { color: #5e3b20; }
+:root[data-theme='light'] .skill-filters select, :root[data-theme='light'] .jutsu-field input { background: #fff8e9; color: #422a19; }
 @media (max-width: 380px) { .skill-filters { grid-template-columns: 1fr; } }
+
+.jutsu-entry > div { flex: 1; min-width: 0; }
+.jutsu-edit-fields { display: grid; gap: 12px; margin: 12px 0; }
+.jutsu-details { display: grid; gap: 10px; margin: 12px 0; }
+.jutsu-details dt { color: #d19a56; font-size: .75rem; font-weight: 700; }
+.jutsu-details dd { margin: 4px 0 0; color: #f4e4c8; font-size: .85rem; line-height: 1.5; overflow-wrap: anywhere; }
+:root[data-theme='light'] .jutsu-details dt { color: #80522b; }
+:root[data-theme='light'] .jutsu-details dd { color: #482e19; }
