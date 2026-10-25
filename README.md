@@ -33,7 +33,7 @@ As mesas são rótulos para organização privada: não há convite, compartilha
 
 ## Perícias e custos de jutsu
 
-Percepção usa INT e aparece também em fichas criadas antes da atualização. Na aba Perícias, filtre todas, somente treinadas ou não treinadas; a ordenação padrão mostra o maior valor Normal primeiro, incluindo ajustes manuais, e permite alternar para ordem alfabética.
+Percepção usa INT e aparece também em fichas criadas antes da atualização. Bom equivale a 50% do valor Normal e Extremo a 20%, arredondados para baixo; os bônus de Extremo são somados depois. O cálculo usa o Normal exibido, inclusive quando editado manualmente. Limites Bom/Extremo preenchidos manualmente continuam sendo respeitados; o botão Auto restaura o cálculo automático. Na aba Perícias, filtre todas, somente treinadas ou não treinadas; a ordenação padrão mostra o maior valor Normal primeiro, incluindo ajustes manuais, e permite alternar para ordem alfabética.
 
 Novos jutsus exigem um custo em dados, como `1d8`, `2d6` ou `1d8+2`. A expressão é salva como texto, sem rolagem nem conversão para custo fixo. Custos numéricos antigos ficam identificados para revisão; ao editar a ficha, é possível corrigir o custo de cada jutsu sem excluí-lo. Fichas antigas continuam abrindo sem perda dos dados.
 

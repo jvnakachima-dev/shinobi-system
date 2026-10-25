@@ -25,8 +25,8 @@ export const clanSkillSlots = { Hoshigaki: 1, Sarutobi: 1, Uchiha: 1, Uzumaki: 1
 export const antecedentSkillSlots = { Amnésico: 3, ANBU: 2, Cientista: 2, Criminoso: 2, Espião: 2, Fazendeiro: 2, Herói: 2, Kage: 2, 'Médico Shinobi': 3, Mercador: 2, Nobre: 2, Renegado: 2, Samurai: 3, Shinobi: 3 }
 export function calculateSkillValues(attributes, skill) {
   const tens = Math.floor((Number(attributes[skill.attribute]) || 0) / 10)
-  const normal = (skill.chosen ? 50 : 10) + tens + (skill.normalBonus ?? 0)
-  const automaticValues = { normal, good: Math.floor(normal / 2), extreme: Math.floor(normal / 10) + (skill.extremeBonus ?? 0) }
+  const normal = skill.manualValues?.normal ?? ((skill.chosen ? 50 : 10) + tens + (skill.normalBonus ?? 0))
+  const automaticValues = { normal, good: Math.floor(normal / 2), extreme: Math.floor(normal / 5) + (skill.extremeBonus ?? 0) }
   return { ...automaticValues, ...(skill.manualValues ?? {}) }
 }
 export function getVisibleSkills(sheet, training = 'all', order = 'value-desc') {

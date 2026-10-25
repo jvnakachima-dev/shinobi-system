@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { normalizeDiceCost } from '../src/dice.js'
-import { createNewSheet, getVisibleSkills } from '../src/sheetModel.js'
+import { calculateSkillValues, createNewSheet, getVisibleSkills } from '../src/sheetModel.js'
 
 test('chakra costs retain dice notation and reject fixed or invalid costs', () => {
   for (const [input, expected] of [['1d8', '1d8'], [' 2D6 + 2 ', '2d6+2'], ['3d10-1', '3d10-1'], ['1d8+0', '1d8']]) assert.equal(normalizeDiceCost(input), expected)
@@ -31,4 +31,18 @@ test('training filters and descending skill order honor manual values across cat
   assert.deepEqual(getVisibleSkills(sheet, 'trained').map(item => item.name), ['Percepção', 'Taijutsu'])
   assert.ok(getVisibleSkills(sheet, 'untrained').every(item => !item.definition.chosen))
   assert.equal(getVisibleSkills(sheet, 'all', 'alphabetical')[0].name, 'Acalmar')
+})
+
+
+test('Extremo is 20% of displayed Normal, preserving bonuses and explicit manual limits', () => {
+  for (const [normal, extreme] of [[50, 10], [60, 12], [75, 15], [53, 10]]) {
+    const values = calculateSkillValues({ INT: 0 }, { attribute: 'INT', chosen: true, manualValues: { normal } })
+    assert.equal(values.normal, normal)
+    assert.equal(values.good, Math.floor(normal / 2))
+    assert.equal(values.extreme, extreme)
+  }
+  assert.equal(calculateSkillValues({ INT: 0 }, { attribute: 'INT', chosen: true }).extreme, 10)
+  assert.equal(calculateSkillValues({ INT: 0 }, { attribute: 'INT', chosen: false }).extreme, 2)
+  assert.equal(calculateSkillValues({ INT: 0 }, { attribute: 'INT', chosen: true, extremeBonus: 5 }).extreme, 15)
+  assert.deepEqual(calculateSkillValues({ INT: 0 }, { attribute: 'INT', chosen: true, extremeBonus: 5, manualValues: { normal: 80, good: 35, extreme: 18 } }), { normal: 80, good: 35, extreme: 18 })
 })

@@ -17,6 +17,7 @@ try {
   for (const width of [320, 360, 390, 430, 768]) {
     const context = await browser.newContext({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1, locale: 'pt-BR' })
     const page = await context.newPage()
+    await page.addInitScript(() => { Math.random = () => 0.11 })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     async function layout(label) {
@@ -60,6 +61,8 @@ try {
     await page.getByRole('navigation').getByRole('button', { name: /Perícias/ }).tap()
     await page.getByLabel('Percepção normal', { exact: true }).fill('75')
     await page.getByLabel('Taijutsu normal', { exact: true }).fill('60')
+    assert.equal(await page.getByLabel('Percepção extremo', { exact: true }).inputValue(), '15')
+    assert.equal(await page.getByLabel('Taijutsu extremo', { exact: true }).inputValue(), '12')
     await page.getByLabel('Treinamento', { exact: true }).selectOption('trained')
     assert.equal(await page.locator('.skill-row').count(), 2)
     assert.equal(await page.locator('.skill-row').first().locator('strong').first().textContent(), 'Percepção')
@@ -73,6 +76,12 @@ try {
     for (const tab of ['Habilidades', 'Rolagens', 'Jutsus']) {
       await page.getByRole('navigation').getByRole('button', { name: new RegExp(tab) }).tap()
       await layout(tab)
+      if (tab === 'Rolagens') {
+        await page.getByLabel('Perícia', { exact: true }).selectOption('Percepção')
+        await page.getByText('Normal 75 · Bom 37 · Extremo 15.', { exact: true }).waitFor()
+        await page.getByRole('button', { name: 'Rolar D100', exact: true }).tap()
+        await page.getByText('Percepção: 12 — Extremo', { exact: true }).waitFor()
+      }
     }
     await page.getByLabel('Nome do jutsu', { exact: true }).fill('Katon de teste')
     await page.getByLabel('Custo de chakra em dados', { exact: true }).fill('8')
@@ -133,7 +142,7 @@ try {
     }
     assert.deepEqual(errors, [])
     await context.close()
-    console.log(`Mobile ${width}px: signup, creation, editing, skill filters/order, Percepção, dice costs, saved copies and touch controls passed.`)
+    console.log(`Mobile ${width}px: signup, creation, editing, skill filters/order, Percepção, dice costs, 20% Extremo rolls, saved copies and touch controls passed.`)
   }
 } finally {
   await browser?.close()
