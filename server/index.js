@@ -28,7 +28,8 @@ export async function createApp({ database = resolve(root, 'data/shinobi.sqlite'
     let size = 0
     for await (const chunk of req) {
       size += chunk.length
-      if (size > 2_500_000) throw fail(413, 'A ficha ultrapassou o limite de 2,5 MB.')
+      // A 2.5 MB portrait expands to about 3.34 MB when encoded as base64.
+      if (size > 5_000_000) throw fail(413, 'A ficha ultrapassou o limite total de 5 MB.')
       data += chunk
     }
     try { return JSON.parse(data) } catch { throw fail(400, 'Dados inválidos.') }

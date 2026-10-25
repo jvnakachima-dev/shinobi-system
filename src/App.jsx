@@ -136,7 +136,7 @@ function App({ initialSheet, onSave, onBack }) {
   function updatePortrait(event) {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/') || file.size > 1_500_000) { setSaveMessage('Use uma imagem de até 1,5 MB.'); return }
+    if (!file.type.startsWith('image/') || file.size > 2_500_000) { setSaveMessage('Use uma imagem de até 2,5 MB.'); return }
     const reader = new FileReader()
     reader.onload = () => updateSheet((current) => ({ ...current, portrait: reader.result }))
     reader.readAsDataURL(file)

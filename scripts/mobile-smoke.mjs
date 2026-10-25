@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { chromium } from 'playwright'
@@ -58,6 +58,21 @@ try {
     }
     await page.getByRole('button', { name: 'Editar', exact: true }).tap()
     await layout('sheet editing')
+    let expectedPortrait
+    if (width === 390) {
+      const sample = readFileSync(new URL('../src/assets/hero.png', import.meta.url))
+      const photo = Buffer.concat([sample, Buffer.alloc(2_500_000 - sample.length)])
+      const upload = page.locator('.portrait-picker input[type="file"]')
+      await upload.setInputFiles({ name: 'foto-limite.png', mimeType: 'image/png', buffer: photo })
+      const portrait = page.getByRole('img', { name: 'Retrato de Akira Uchiha', exact: true })
+      await portrait.waitFor()
+      await page.waitForFunction(() => document.querySelector('.portrait-picker img')?.naturalWidth > 0)
+      expectedPortrait = await portrait.getAttribute('src')
+      assert.equal(expectedPortrait.length, 22 + Math.ceil(2_500_000 / 3) * 4)
+      await upload.setInputFiles({ name: 'foto-acima-do-limite.png', mimeType: 'image/png', buffer: Buffer.concat([photo, Buffer.alloc(1)]) })
+      await page.getByText('Use uma imagem de até 2,5 MB.', { exact: true }).waitFor()
+      assert.ok(await portrait.getAttribute('src') === expectedPortrait, 'Oversized upload must preserve the accepted portrait')
+    }
     await page.getByRole('navigation').getByRole('button', { name: /Perícias/ }).tap()
     await page.getByLabel('Percepção normal', { exact: true }).fill('75')
     await page.getByLabel('Taijutsu normal', { exact: true }).fill('60')
@@ -114,6 +129,7 @@ try {
     await layout('saved dashboard')
     const saved = await (await context.request.get(base + '/api/sheets')).json()
     assert.ok(saved.sheets.every(record => record.data.jutsus[0].chakra === '2d6+2'))
+    if (expectedPortrait) assert.ok(saved.sheets.every(record => record.data.portrait === expectedPortrait), 'Full 2.5 MB portrait must survive saving, encounter copying and reloading')
     assert.ok(saved.sheets.every(record => record.data.skills.Percepção.chosen && record.data.skills.Percepção.manualValues.normal === 75))
     if (width === 390) {
       const legacy = createNewSheet()
