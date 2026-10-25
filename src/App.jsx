@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { skillGroups, allSkills, defaultSkills, attributeNames, classSkillSlots, clanSkillSlots, antecedentSkillSlots, calculateSkillValues, clans, antecedents, shinobiClasses, classProgressions, abilityDescriptions, clanAbilityDetails, antecedentAbilityDetails } from './sheetModel.js'
+import { normalizeDiceCost } from './dice.js'
+import { getVisibleSkills, skillGroups, allSkills, defaultSkills, attributeNames, classSkillSlots, clanSkillSlots, antecedentSkillSlots, calculateSkillValues, clans, antecedents, shinobiClasses, classProgressions, abilityDescriptions, clanAbilityDetails, antecedentAbilityDetails } from './sheetModel.js'
 
 export function Creator({ sheet, onFinish, onCancel, busy, error }) {
   const [step, setStep] = useState(0)
@@ -44,7 +45,7 @@ export function Creator({ sheet, onFinish, onCancel, busy, error }) {
       {step === 2 && <><p className="helper-text">O clã define o tema e os benefícios que serão exibidos na ficha.</p><div className="choice-grid">{clans.map((clan) => <button type="button" className={draft.clan === clan ? 'selected' : ''} onClick={() => setDraft({ ...draft, clan })} key={clan}>{clan}</button>)}</div></>}
       {step === 3 && <><p className="helper-text">Escolha o antecedente do personagem.</p><div className="choice-grid">{antecedents.map((antecedent) => <button type="button" className={draft.antecedent === antecedent ? 'selected' : ''} onClick={() => setDraft({ ...draft, antecedent })} key={antecedent}>{antecedent}</button>)}</div></>}
       {step === 4 && <><p className="helper-text">A classe shinobi define as habilidades automáticas exibidas por nível.</p><div className="choice-grid class-choices">{shinobiClasses.map((className) => <button type="button" className={draft.className === className ? 'selected' : ''} onClick={() => setDraft({ ...draft, className, path: className })} key={className}>{className}</button>)}</div></>}
-      {step === 5 && <><p className="helper-text">Escolha até {skillSlots} perícias para receberem a base 50% + a dezena do atributo.</p><div className="skill-slot-summary"><strong>{selectedSkillsCount} / {skillSlots}</strong><span>{classSkillSlots[draft.className] ?? 0} da classe · {clanSkillSlots[draft.clan] ?? 0} do clã · {antecedentSkillSlots[draft.antecedent] ?? 0} do antecedente</span></div><div className="creator-skill-list">{skillGroups.flatMap((group) => group.skills).map(([skill, fallbackAttribute]) => { const definition = draft.skills[skill] ?? { ...defaultSkills[skill], attribute: fallbackAttribute }; const values = calculateSkillValues(draft.attributes, definition); return <label className="creator-skill-row" key={skill}><input type="checkbox" checked={Boolean(definition.chosen)} disabled={!definition.chosen && selectedSkillsCount >= skillSlots} onChange={(event) => toggleDraftSkill(skill, event.target.checked)} /><span><b>{skill}</b><small>N {values.normal} · B {values.good} · E {values.extreme}</small></span><select value={definition.attribute} onChange={(event) => updateDraftSkill(skill, 'attribute', event.target.value)}>{Object.entries(attributeNames).map(([key, name]) => <option value={key} key={key}>{key} · {name}</option>)}</select></label> })}</div></>}
+      {step === 5 && <><p className="helper-text">Escolha até {skillSlots} perícias para receberem a base 50% + a dezena do atributo.</p><div className="skill-slot-summary"><strong>{selectedSkillsCount} / {skillSlots}</strong><span>{classSkillSlots[draft.className] ?? 0} da classe · {clanSkillSlots[draft.clan] ?? 0} do clã · {antecedentSkillSlots[draft.antecedent] ?? 0} do antecedente</span></div><div className="creator-skill-list">{skillGroups.flatMap((group) => group.skills).map(([skill, fallbackAttribute]) => { const definition = draft.skills[skill] ?? { ...defaultSkills[skill], attribute: fallbackAttribute }; const values = calculateSkillValues(draft.attributes, definition); return <label className="creator-skill-row" key={skill}><input aria-label={`Treinar ${skill}`} type="checkbox" checked={Boolean(definition.chosen)} disabled={!definition.chosen && selectedSkillsCount >= skillSlots} onChange={(event) => toggleDraftSkill(skill, event.target.checked)} /><span><b>{skill}</b><small>N {values.normal} · B {values.good} · E {values.extreme}</small></span><select value={definition.attribute} onChange={(event) => updateDraftSkill(skill, 'attribute', event.target.value)}>{Object.entries(attributeNames).map(([key, name]) => <option value={key} key={key}>{key} · {name}</option>)}</select></label> })}</div></>}
       {step === 6 && <div className="creator-review"><h2>{draft.name || 'Seu personagem'}</h2><p>{campaign || 'Aventura livre'} · {draft.sessionName}</p><p>{draft.clan} · {draft.antecedent} · {draft.className} · Nível {draft.level}</p><p>{selectedSkillsCount} de {skillSlots} perícias escolhidas.</p><p className="helper-text">Defina PV e chakra de acordo com as regras da sua mesa. Você poderá ajustar os valores depois.</p><div className="editor-grid">{['pv', 'chakra'].map(key => <label key={key}>{key === 'pv' ? 'PV' : 'Chakra'} inicial e máximo<input type="number" min="1" max="99999" value={draft[key].max} onChange={event => { const value = Math.max(1, Math.min(99999, Number(event.target.value))); setDraft({ ...draft, [key]: { current: value, max: value } }) }} /></label>)}</div></div>}
     </section>
     <div className="creator-actions"><button type="button" disabled={busy} onClick={() => step ? setStep(step - 1) : onCancel()}>{step ? 'Voltar' : 'Cancelar'}</button><button type="button" disabled={busy} className="roll-button" onClick={next}>{busy ? 'Salvando…' : step === 6 ? 'Criar ficha' : 'Continuar'}</button></div>
@@ -70,6 +71,9 @@ function App({ initialSheet, onSave, onBack }) {
   const [saving, setSaving] = useState(false)
   const dirty = JSON.stringify(sheet) !== savedSheet
   const [activeTab, setActiveTab] = useState('ficha')
+  const [skillTraining, setSkillTraining] = useState('all')
+  const [skillOrder, setSkillOrder] = useState('value-desc')
+  const [jutsuError, setJutsuError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('shinobi-system:theme') ?? 'dark')
   const [selectedAbility, setSelectedAbility] = useState(null)
@@ -78,6 +82,7 @@ function App({ initialSheet, onSave, onBack }) {
   const [draftAbility, setDraftAbility] = useState({ name: '', source: 'Personalizada', level: '', description: '' })
   const [saveMessage, setSaveMessage] = useState('')
 
+  const visibleSkills = getVisibleSkills(sheet, skillTraining, skillOrder)
   const selectedValue = calculateSkillValues(sheet.attributes, sheet.skills[selectedSkill] ?? defaultSkills[selectedSkill]).normal
   const currentLevel = Math.max(1, Math.min(20, Number(sheet.level) || 1))
   const classAbilities = Object.entries(classProgressions[sheet.className] ?? {}).filter(([level]) => Number(level) <= currentLevel).flatMap(([level, abilities]) => abilities.map((ability) => ({ level, ability })))
@@ -101,9 +106,12 @@ function App({ initialSheet, onSave, onBack }) {
 
   function updateSheet(updater) { setSheet((current) => updater(current)) }
   async function saveNow() {
+    const previous = JSON.parse(savedSheet)
+    const invalid = sheet.jutsus.find(jutsu => !normalizeDiceCost(jutsu.chakra) && !previous.jutsus.some(old => old.id === jutsu.id && old.chakra === jutsu.chakra))
+    if (invalid) { setSaveMessage(`Informe o custo de ${invalid.name} em dados, como 1d8 ou 2d6+2.`); return }
     setSaving(true); setSaveMessage('')
-    const snapshot = JSON.stringify(sheet)
-    try { await onSave(JSON.parse(snapshot)); setSavedSheet(snapshot); setSaveMessage('Ficha salva na sua conta.') }
+    const snapshot = JSON.stringify({ ...sheet, jutsus: sheet.jutsus.map(jutsu => ({ ...jutsu, chakra: normalizeDiceCost(jutsu.chakra) ?? jutsu.chakra })) })
+    try { await onSave(JSON.parse(snapshot)); setSavedSheet(JSON.stringify(sheet)); setSaveMessage('Ficha salva na sua conta.') }
     catch (error) { setSaveMessage(error.message) } finally { setSaving(false) }
   }
   function back() {
@@ -153,10 +161,15 @@ function App({ initialSheet, onSave, onBack }) {
   function addJutsu(event) {
     event.preventDefault()
     if (!draftJutsu.name.trim()) return
-    const jutsu = { ...draftJutsu, id: Date.now() }
+    const chakra = normalizeDiceCost(draftJutsu.chakra)
+    if (!chakra) { setJutsuError('Informe o custo em dados, como 1d8 ou 2d6+2. Um valor fixo, como 8, não é válido.'); return }
+    setJutsuError('')
+    const jutsu = { ...draftJutsu, name: draftJutsu.name.trim(), chakra, id: crypto.randomUUID() }
     updateSheet((current) => ({ ...current, jutsus: [...current.jutsus, jutsu] }))
     setDraftJutsu({ name: '', rank: '', chakra: '', description: '' })
   }
+
+  function updateJutsuCost(id, chakra) { updateSheet(current => ({ ...current, jutsus: current.jutsus.map(jutsu => jutsu.id === id ? { ...jutsu, chakra } : jutsu) })) }
 
   function removeJutsu(id) { updateSheet((current) => ({ ...current, jutsus: current.jutsus.filter((jutsu) => jutsu.id !== id) })) }
   function addCustomAbility(event) {
@@ -192,7 +205,19 @@ function App({ initialSheet, onSave, onBack }) {
         <section className="section-card"><div className="section-heading"><p className="section-kicker">NOTAS</p><h2>Anotações</h2></div><textarea className="notes-field" value={sheet.notes} onChange={(event) => updateSheet((current) => ({ ...current, notes: event.target.value }))} placeholder="Escreva anotações da campanha..." /></section>
       </>}
 
-      {activeTab === 'pericias' && <section className="section-card tab-content"><div className="section-heading"><p className="section-kicker">D100</p><h2>Perícias</h2><p className="helper-text">Escolhidas: {Object.values(sheet.skills).filter((skill) => skill?.chosen).length}. Os valores são calculados pela dezena do atributo: 50 + dezena para escolhidas; 10 + dezena para as demais.</p></div>{skillGroups.map((group) => <div className="skill-group" key={group.title}><h3>{group.title}</h3><div className="skill-list skill-table">{group.skills.map(([skill, fallbackAttribute]) => { const definition = sheet.skills[skill] ?? { ...defaultSkills[skill], attribute: fallbackAttribute }; const values = calculateSkillValues(sheet.attributes, definition); return <div className={`skill-row ${isEditing ? 'skill-row-editing' : ''}`} key={skill}><div><strong>{skill}</strong><span>{definition.attribute}</span></div>{isEditing ? <><label className="skill-check"><input type="checkbox" checked={Boolean(definition.chosen)} onChange={(event) => updateSkill(skill, 'chosen', event.target.checked)} /> escolhida</label><select aria-label={`Atributo de ${skill}`} value={definition.attribute} onChange={(event) => updateSkill(skill, 'attribute', event.target.value)}>{Object.entries(attributeNames).map(([key, name]) => <option value={key} key={key}>{key} · {name}</option>)}</select><div className="skill-edit-fields"><label>N<input aria-label={`${skill} normal`} type="number" min="0" value={values.normal} onChange={(event) => updateSkillValue(skill, 'normal', event.target.value)} /></label><label>B<input aria-label={`${skill} bom`} type="number" min="0" value={values.good} onChange={(event) => updateSkillValue(skill, 'good', event.target.value)} /></label><label>E<input aria-label={`${skill} extremo`} type="number" min="0" value={values.extreme} onChange={(event) => updateSkillValue(skill, 'extreme', event.target.value)} /></label><button type="button" onClick={() => restoreAutomaticSkillValues(skill)}>Auto</button></div></> : <div className="skill-values"><b>N {values.normal}</b><b>B {values.good}</b><b>E {values.extreme}</b></div>}</div> })}</div></div>)}</section>}
+      {activeTab === 'pericias' && <section className="section-card tab-content">
+        <div className="section-heading"><p className="section-kicker">D100</p><h2>Perícias</h2><p className="helper-text">Treinadas: {Object.values(sheet.skills).filter(skill => skill?.chosen).length}. Normal: 50 + dezena do atributo para treinadas; 10 + dezena para as demais.</p></div>
+        <div className="skill-filters">
+          <label>Treinamento<select aria-label="Treinamento" value={skillTraining} onChange={event => setSkillTraining(event.target.value)}><option value="all">Todas as perícias</option><option value="trained">Somente treinadas</option><option value="untrained">Não treinadas</option></select></label>
+          <label>Ordenação<select aria-label="Ordenação" value={skillOrder} onChange={event => setSkillOrder(event.target.value)}><option value="value-desc">Maior valor primeiro</option><option value="alphabetical">Ordem alfabética</option></select></label>
+        </div>
+        <p className="helper-text" role="status">{visibleSkills.length} perícia{visibleSkills.length === 1 ? '' : 's'} exibida{visibleSkills.length === 1 ? '' : 's'}.</p>
+        <div className="skill-list skill-table">{visibleSkills.map(({ name: skill, group, definition, values }) => <div className={`skill-row ${isEditing ? 'skill-row-editing' : ''}`} key={skill}>
+          <div><strong>{skill}</strong><span>{definition.attribute} · {group}{definition.chosen ? ' · Treinada' : ''}</span></div>
+          {isEditing ? <><label className="skill-check"><input aria-label={`Treinada em ${skill}`} type="checkbox" checked={Boolean(definition.chosen)} onChange={event => updateSkill(skill, 'chosen', event.target.checked)} /> treinada</label><select aria-label={`Atributo de ${skill}`} value={definition.attribute} onChange={event => updateSkill(skill, 'attribute', event.target.value)}>{Object.entries(attributeNames).map(([key, name]) => <option value={key} key={key}>{key} · {name}</option>)}</select><div className="skill-edit-fields"><label>N<input aria-label={`${skill} normal`} type="number" min="0" value={values.normal} onChange={event => updateSkillValue(skill, 'normal', event.target.value)} /></label><label>B<input aria-label={`${skill} bom`} type="number" min="0" value={values.good} onChange={event => updateSkillValue(skill, 'good', event.target.value)} /></label><label>E<input aria-label={`${skill} extremo`} type="number" min="0" value={values.extreme} onChange={event => updateSkillValue(skill, 'extreme', event.target.value)} /></label><button type="button" onClick={() => restoreAutomaticSkillValues(skill)}>Auto</button></div></> : <div className="skill-values"><b>N {values.normal}</b><b>B {values.good}</b><b>E {values.extreme}</b></div>}
+        </div>)}</div>
+        {!visibleSkills.length && <p className="empty-state">Nenhuma perícia neste filtro. Selecione Todas as perícias para alterar o treinamento.</p>}
+      </section>}
 
       {activeTab === 'habilidades' && <section className="section-card tab-content"><div className="section-heading"><p className="section-kicker">CLASSE SHINOBI</p><h2>{sheet.className || 'Classe não definida'}</h2><p className="helper-text">Nível atual: {currentLevel}. Toque em uma habilidade para ler o efeito.</p></div>{sheet.className === 'Assassino' && <div className="ability-status"><article><span>Ataque Furtivo</span><strong>{sneakAttackDice}</strong></article><article><span>Manobras</span><strong>{maneuverDice}d8</strong></article><article><span>Sem armadura</span><strong>{unarmoredMovement}</strong></article></div>}<div className="ability-list">{classAbilities.length ? classAbilities.map(({ level, ability }, index) => <div key={`${level}-${ability}-${index}`}><button className="ability-row" type="button" onClick={() => setSelectedAbility(selectedAbility?.ability === ability && selectedAbility?.level === level ? null : { level, ability })}><span>Nível {level}</span><strong>{ability}</strong><b>{selectedAbility?.ability === ability && selectedAbility?.level === level ? '−' : '+'}</b></button>{selectedAbility?.ability === ability && selectedAbility?.level === level && <div className="ability-description">{getAbilityDescription(ability)}</div>}</div>) : <p className="empty-state">Defina uma classe e um nível numérico para listar as habilidades.</p>}</div><div className="section-heading progression-heading"><p className="section-kicker">EVOLUÇÃO COMPLETA</p><h2>Próximos níveis</h2></div><div className="level-progression">{Array.from({ length: 20 }, (_, index) => index + 1).map((level) => <article className={level <= currentLevel ? 'unlocked' : ''} key={level}><strong>Nível {level}</strong><div>{(classProgressions[sheet.className]?.[level] ?? ['Sem mudança registrada']).map((ability) => <span key={ability}>{ability}</span>)}</div></article>)}</div></section>}
 
@@ -200,7 +225,23 @@ function App({ initialSheet, onSave, onBack }) {
 
       {activeTab === 'rolagens' && <section className="roll-panel tab-content"><div><p className="section-kicker">TESTE</p><h2>Rolagem D100</h2><label className="roll-label" htmlFor="skill-select">Perícia de demonstração</label><select id="skill-select" value={selectedSkill} onChange={(event) => setSelectedSkill(event.target.value)}>{allSkills.map((skill) => <option key={skill}>{skill}</option>)}</select><p>Faixas desta demonstração: Normal 50, Bom 25, Extremo 10. A perícia escolhida está em {selectedValue}%.</p></div><button type="button" className="roll-button" onClick={rollD100}>Rolar D100</button><p className="roll-result" aria-live="polite">{rollSummary ? `${rollSummary.skill}: ${rollSummary.value} — ${rollSummary.quality}` : 'Nenhuma rolagem realizada.'}</p><div className="history"><h3>Histórico</h3>{sheet.rollHistory.length ? sheet.rollHistory.map((roll) => <div className="history-row" key={roll.id}><span>{roll.skill} · {roll.time}</span><strong>{roll.value} — {roll.quality}</strong></div>) : <p>Nenhuma rolagem salva.</p>}</div></section>}
 
-      {activeTab === 'jutsus' && <section className="section-card tab-content"><div className="section-heading"><p className="section-kicker">BIBLIOTECA PESSOAL</p><h2>Jutsus</h2><p className="helper-text">Cadastre técnicas próprias enquanto a biblioteca oficial não é fornecida.</p></div><form className="jutsu-form" onSubmit={addJutsu}><input placeholder="Nome do jutsu" value={draftJutsu.name} onChange={(event) => setDraftJutsu({ ...draftJutsu, name: event.target.value })} /><input placeholder="Rank" value={draftJutsu.rank} onChange={(event) => setDraftJutsu({ ...draftJutsu, rank: event.target.value })} /><input type="number" placeholder="Custo de chakra" value={draftJutsu.chakra} onChange={(event) => setDraftJutsu({ ...draftJutsu, chakra: event.target.value })} /><textarea placeholder="Descrição" value={draftJutsu.description} onChange={(event) => setDraftJutsu({ ...draftJutsu, description: event.target.value })} /><button className="roll-button" type="submit">Adicionar jutsu</button></form><div className="jutsu-list">{sheet.jutsus.map((jutsu) => <article className="jutsu-entry" key={jutsu.id}><div><h3>{jutsu.name}</h3><p>{jutsu.rank && `Rank ${jutsu.rank}`}{jutsu.chakra && ` · ${jutsu.chakra} Chakra`}</p><p>{jutsu.description}</p></div><button type="button" onClick={() => removeJutsu(jutsu.id)} aria-label={`Remover ${jutsu.name}`}>×</button></article>)}{!sheet.jutsus.length && <p className="empty-state">Nenhum jutsu particular cadastrado.</p>}</div></section>}
+      {activeTab === 'jutsus' && <section className="section-card tab-content">
+        <div className="section-heading"><p className="section-kicker">BIBLIOTECA PESSOAL</p><h2>Jutsus</h2><p className="helper-text">Cadastre técnicas próprias. O custo de chakra é salvo em dados, sem transformar a expressão em um valor fixo.</p></div>
+        <form className="jutsu-form" onSubmit={addJutsu}>
+          <input aria-label="Nome do jutsu" placeholder="Nome do jutsu" required value={draftJutsu.name} onChange={event => setDraftJutsu({ ...draftJutsu, name: event.target.value })} />
+          <input aria-label="Rank do jutsu" placeholder="Rank" value={draftJutsu.rank} onChange={event => setDraftJutsu({ ...draftJutsu, rank: event.target.value })} />
+          <label className="jutsu-cost-field">Custo de chakra em dados<input type="text" placeholder="Ex.: 1d8 ou 2d6+2" maxLength={60} required aria-describedby="jutsu-cost-help" aria-invalid={Boolean(jutsuError)} value={draftJutsu.chakra} onChange={event => { setDraftJutsu({ ...draftJutsu, chakra: event.target.value }); setJutsuError('') }} /></label>
+          <p id="jutsu-cost-help" className="helper-text">Use quantidade e faces do dado: 1d8, 2d6 ou 1d8+2.</p>
+          {jutsuError && <p role="alert" className="account-error">{jutsuError}</p>}
+          <textarea aria-label="Descrição do jutsu" placeholder="Descrição" value={draftJutsu.description} onChange={event => setDraftJutsu({ ...draftJutsu, description: event.target.value })} />
+          <button className="roll-button" type="submit">Adicionar jutsu</button>
+        </form>
+        <div className="jutsu-list">{sheet.jutsus.map(jutsu => <article className="jutsu-entry" key={jutsu.id}><div><h3>{jutsu.name}</h3>
+          <p>{jutsu.rank && `Rank ${jutsu.rank}`}{normalizeDiceCost(jutsu.chakra) && ` · ${normalizeDiceCost(jutsu.chakra)} Chakra`}</p>
+          {!normalizeDiceCost(jutsu.chakra) && <p className="helper-text">Custo antigo: {jutsu.chakra === '' || jutsu.chakra == null ? 'não informado' : jutsu.chakra}. Edite a ficha para informar os dados.</p>}
+          {isEditing && <label className="jutsu-cost-field">Custo de {jutsu.name} em dados<input type="text" maxLength={60} placeholder="Ex.: 1d8" value={jutsu.chakra ?? ''} onChange={event => updateJutsuCost(jutsu.id, event.target.value)} onBlur={event => { const cost = normalizeDiceCost(event.target.value); if (cost) updateJutsuCost(jutsu.id, cost) }} /></label>}
+          <p>{jutsu.description}</p></div><button type="button" onClick={() => removeJutsu(jutsu.id)} aria-label={`Remover ${jutsu.name}`}>×</button></article>)}{!sheet.jutsus.length && <p className="empty-state">Nenhum jutsu particular cadastrado.</p>}</div>
+      </section>}
 
       <nav className="bottom-nav" aria-label="Navegação principal">{[['ficha', '◈', 'Ficha'], ['pericias', '⌁', 'Perícias'], ['habilidades', '✦', 'Habilidades'], ['rolagens', '◎', 'Rolagens'], ['jutsus', '忍', 'Jutsus']].map(([tab, icon, label]) => <button className={`nav-item ${activeTab === tab ? 'active' : ''}`} type="button" key={tab} onClick={() => setActiveTab(tab)}><span>{icon}</span>{label}</button>)}</nav>
     </main>

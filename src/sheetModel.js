@@ -2,7 +2,7 @@ export const STORAGE_KEY = 'shinobi-system:yuta-uchiha'
 
 export const skillGroups = [
   { title: 'Combativas', skills: [['Taijutsu', 'DEX'], ['Jutsu', 'ART'], ['Esquiva', 'DEX'], ['Contra-ataque', 'DEX'], ['Bloqueio', 'CON'], ['Imobilizar', 'FOR'], ['Atletismo', 'DEX'], ['Acrobacia', 'FOR'], ['Arremesso', 'DEX']] },
-  { title: 'Inteligência', skills: [['Genjutsu', 'ART'], ['Fūinjutsu', 'ART'], ['Intuição', 'INT'], ['Investigação', 'INT'], ['Furtividade', 'INT'], ['História', 'INT'], ['Encontrar', 'INT'], ['Sobrevivência', 'INT'], ['Natureza', 'INT'], ['Medicina', 'INT'], ['Ninjutsu', 'ART'], ['Roubo', 'DEX'], ['Farmacologia', 'INT'], ['Aprendizagem', 'INT'], ['Escutar', 'INT']] },
+  { title: 'Inteligência', skills: [['Genjutsu', 'ART'], ['Fūinjutsu', 'ART'], ['Intuição', 'INT'], ['Percepção', 'INT'], ['Investigação', 'INT'], ['Furtividade', 'INT'], ['História', 'INT'], ['Encontrar', 'INT'], ['Sobrevivência', 'INT'], ['Natureza', 'INT'], ['Medicina', 'INT'], ['Ninjutsu', 'ART'], ['Roubo', 'DEX'], ['Farmacologia', 'INT'], ['Aprendizagem', 'INT'], ['Escutar', 'INT']] },
   { title: 'Sociais', skills: [['Atuação', 'CAR'], ['Enganação', 'CAR'], ['Intimidação', 'CAR'], ['Lábia', 'CAR'], ['Acalmar', 'CAR'], ['Adestrar Animais', 'CAR'], ['Sorte', 'CAR'], ['Vontade', 'CAR']] },
 ]
 
@@ -29,6 +29,14 @@ export function calculateSkillValues(attributes, skill) {
   const automaticValues = { normal, good: Math.floor(normal / 2), extreme: Math.floor(normal / 10) + (skill.extremeBonus ?? 0) }
   return { ...automaticValues, ...(skill.manualValues ?? {}) }
 }
+export function getVisibleSkills(sheet, training = 'all', order = 'value-desc') {
+  return skillGroups.flatMap(group => group.skills.map(([name, attribute]) => {
+    const definition = sheet.skills[name] ?? { ...defaultSkills[name], attribute }
+    return { name, group: group.title, definition, values: calculateSkillValues(sheet.attributes, definition) }
+  })).filter(skill => training === 'trained' ? skill.definition.chosen : training === 'untrained' ? !skill.definition.chosen : true)
+    .sort((a, b) => (order === 'value-desc' ? b.values.normal - a.values.normal : 0) || a.name.localeCompare(b.name, 'pt-BR'))
+}
+
 export const clans = ['Akimichi', 'Aburame', 'Hoshigaki', 'Hyuuga', 'Inuzuka', 'Kaguya', 'Kazekage', 'Kurama', 'Nara', 'Raikage', 'Sarutobi', 'Senju', 'Uchiha', 'Uzumaki', 'Yamanaka']
 export const antecedents = ['Amnésico', 'ANBU', 'Cientista', 'Criminoso', 'Espião', 'Fazendeiro', 'Herói', 'Kage', 'Médico Shinobi', 'Mercador', 'Nobre', 'Renegado', 'Samurai', 'Shinobi']
 export const shinobiClasses = ['Linha de Frente', 'Assassino', 'Suporte']

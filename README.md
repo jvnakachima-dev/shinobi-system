@@ -31,6 +31,12 @@ Uma ficha antiga em `localStorage` pode ser importada explicitamente para a cont
 
 As mesas são rótulos para organização privada: não há convite, compartilhamento com mestre/jogadores ou edição colaborativa. A criação de cópias não bloqueia a edição das fichas anteriores. Recuperação de senha e confirmação de e-mail ainda não estão implementadas.
 
+## Perícias e custos de jutsu
+
+Percepção usa INT e aparece também em fichas criadas antes da atualização. Na aba Perícias, filtre todas, somente treinadas ou não treinadas; a ordenação padrão mostra o maior valor Normal primeiro, incluindo ajustes manuais, e permite alternar para ordem alfabética.
+
+Novos jutsus exigem um custo em dados, como `1d8`, `2d6` ou `1d8+2`. A expressão é salva como texto, sem rolagem nem conversão para custo fixo. Custos numéricos antigos ficam identificados para revisão; ao editar a ficha, é possível corrigir o custo de cada jutsu sem excluí-lo. Fichas antigas continuam abrindo sem perda dos dados.
+
 ## Verificação
 
 ```sh
