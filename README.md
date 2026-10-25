@@ -1,16 +1,66 @@
-# React + Vite
+# Shinobi System
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Fichas de personagem com contas privadas e uma cópia independente para cada encontro. O frontend usa React/Vite; a API usa Node.js com SQLite local e PostgreSQL em produção. O lançamento gratuito está preparado para Render + Neon.
 
-Currently, two official plugins are available:
+## Desenvolvimento
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Requer Node.js 24 ou superior (usa `node:sqlite`).
 
-## React Compiler
+```sh
+npm ci
+npm run server
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Em outro terminal:
 
-## Expanding the Oxlint configuration
+```sh
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+A aplicação usa o caminho `/shinobi-system/`. O Vite encaminha `/api` para a API na porta 3001. Inicie ambos os processos para cadastrar contas e usar as fichas. O banco fica em `data/shinobi.sqlite`, ignorado pelo Git; não o apague ao reiniciar ou atualizar o código.
+
+## Fluxo de uso
+
+1. Crie uma conta com e-mail e senha de pelo menos 10 caracteres.
+2. Em **Criar personagem**, informe personagem, mesa e encontro; escolha atributos, clã, antecedente, classe e perícias e revise PV/chakra. Os valores iniciais devem seguir as regras da mesa; não há cálculo inventado de recursos.
+3. Abra a ficha, edite e clique em **Salvar ficha**. Alterações pendentes são sinalizadas; sair da ficha ou fechar a página pede confirmação se houver mudanças não salvas.
+4. Use **Preparar próximo encontro** no painel para copiar o estado salvo. A nova ficha herda recursos, itens, notas e histórico, mas alterações posteriores não afetam a anterior. Abra e salve a ficha de origem antes de copiá-la.
+5. Busque fichas por personagem, mesa ou encontro. É possível excluir uma cópia sem excluir as demais.
+
+Uma ficha antiga em `localStorage` pode ser importada explicitamente para a conta, sem apagar o original. Essa importação precisa ser feita no navegador e na origem onde a ficha antiga foi criada. Ela não transfere automaticamente dados de outra máquina.
+
+As mesas são rótulos para organização privada: não há convite, compartilhamento com mestre/jogadores ou edição colaborativa. A criação de cópias não bloqueia a edição das fichas anteriores. Recuperação de senha e confirmação de e-mail ainda não estão implementadas.
+
+## Verificação
+
+```sh
+npm test
+npm run lint
+npm run build
+```
+
+Os testes da API usam bancos temporários e verificam cadastro/login, isolamento entre contas, cópias independentes, conflitos de versão, persistência após reinício e expiração/logout. Nenhuma conta ou ficha de exemplo é instalada no banco de uso real.
+
+## Lançamento gratuito na web
+
+Siga o [passo a passo de lançamento](docs/LANCAMENTO_WEB.md). O `render.yaml` prepara um Web Service **Free**, sem disco pago. Crie um projeto **Free** no Neon e preencha `DATABASE_URL` de forma segura no Render. O servidor cria as tabelas automaticamente e mantém as fichas no PostgreSQL externo, inclusive após reinícios do Render.
+
+Em produção, o servidor exige `DATABASE_URL` e uma origem HTTPS: usa `RENDER_EXTERNAL_URL` automaticamente no Render, ou `APP_ORIGIN` em outra hospedagem. Ele não usa SQLite no disco temporário de produção. O GitHub Pages anterior não executa a API.
+
+Variáveis: `HOST` (padrão `127.0.0.1`), `PORT` (3001), `DATABASE_PATH` (SQLite somente em desenvolvimento), `DATABASE_URL` (PostgreSQL; segredo apenas do servidor), `APP_ORIGIN` (origem HTTPS sem caminho), `NODE_ENV` (`production` habilita cookies seguros e cabeçalhos de proteção). Copie `.env.example` para `.env` se precisar de configuração local; `npm start` e `npm run server` carregam esse arquivo sem substituir variáveis já injetadas pela hospedagem.
+
+## Validação de PostgreSQL e telefone
+
+Com um PostgreSQL de teste separado, configure `TEST_DATABASE_URL` apontando para um banco cujo nome contenha `test`, e execute `npm test`. A integração exercita os dois bancos, incluindo persistência após reinício e isolamento entre contas. O CI já prepara esse PostgreSQL temporário; nenhuma conta de exemplo é instalada no banco real.
+
+Para o teste móvel, gere o build e instale o navegador de teste:
+
+```sh
+npm run build
+npx playwright install chromium
+npm run test:mobile
+```
+
+O script abre seu próprio servidor com banco em memória e verifica cadastro, criação guiada, edição, navegação, salvamento e cópias por encontro em 320, 360, 390, 430 e 768 pixels, com emulação de toque. Usa Chromium de teste; não equivale a testar todos os aparelhos físicos ou Safari. Também pode usar um Chromium já instalado, indicado por `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+
+Os planos gratuitos têm limites e o servidor pode demorar para despertar após inatividade. A conta de hospedagem, a conexão real com o Neon e o domínio público precisam ser configurados pelo proprietário antes da validação online.

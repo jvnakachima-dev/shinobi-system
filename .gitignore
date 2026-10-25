@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local database and runtime configuration
+data/
+.env
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

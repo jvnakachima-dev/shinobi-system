@@ -1,0 +1,24 @@
+# Free web service; PostgreSQL lives independently on Neon.
+services:
+  - type: web
+    name: shinobi-system
+    runtime: node
+    plan: free
+    region: virginia
+    numInstances: 1
+    buildCommand: npm ci --include=dev && npm test && npm run lint && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        sync: false
+# Enter the Neon pooled PostgreSQL connection string securely in Render.
+# No disk or paid database is created by this blueprint.
+# RENDER_EXTERNAL_URL supplies the initial HTTPS origin automatically.
+# Set APP_ORIGIN explicitly when using a custom domain.

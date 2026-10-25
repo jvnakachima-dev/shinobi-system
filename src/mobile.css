@@ -1,0 +1,65 @@
+/* Touch controls, readable inputs and safe areas on small screens. */
+html { scroll-padding-top: 130px; -webkit-text-size-adjust: 100%; }
+body { min-height: 100dvh; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button:focus-visible, a:focus-visible { outline: 2px solid #f5b965; outline-offset: 3px; }
+.account-shell, .character-sheet { overflow-wrap: anywhere; }
+.account-shell { min-height: 100dvh; background: radial-gradient(circle at top, #c4541e24, transparent 34rem), #0d0b0a; padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom)); }
+.character-sheet { min-height: 100dvh; overflow: clip; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.save-button, .text-button, .choice-grid button, .resource-controls button, .modal-close, .jutsu-entry button, .custom-ability > button { min-height: 44px; min-width: 44px; }
+.resource-controls { grid-template-columns: repeat(2, 44px); }
+.creator-step-label { color: #d7ba90; margin: 4px 0 12px; font-size: .85rem; }
+.creator-progress { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; }
+.creator-progress button { flex: 1 0 44px; min-height: 44px; min-width: 44px; max-width: 58px; border-radius: 10px; }
+.creator-actions { position: sticky; bottom: 0; z-index: 5; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: #18110f; }
+.creator-skill-list { max-height: none; overflow: visible; }
+.creator-skill-row { min-height: 60px; }
+.sheet-toolbar { position: sticky !important; top: env(safe-area-inset-top); z-index: 15 !important; padding: 10px 0; margin: -1px 0 14px; border-bottom: 1px solid #5b4533; background: #18110ff2; backdrop-filter: blur(12px); }
+.sheet-toolbar > span { font-size: .8rem; color: #e2c697; }
+.sheet-toolbar p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-toolbar .save-button:nth-child(2) { margin-left: auto; background: #a64627; }
+.account-overlay { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+.account-overlay > section { max-height: calc(100dvh - 40px); overscroll-behavior: contain; }
+:root[data-theme='light'] .sheet-toolbar, :root[data-theme='light'] .creator-actions { background: #ffefd5f5; color: #432b1b; }
+:root[data-theme='light'] .sheet-toolbar > span, :root[data-theme='light'] .creator-step-label, :root[data-theme='light'] .creator-screen h1 { color: #58371e; }
+:root[data-theme='light'] .account-shell .section-card { background: linear-gradient(145deg, #211914, #171210); }
+@media (max-width: 600px) {
+  input:not([type='checkbox']):not([type='file']), select, textarea { font-size: 16px !important; min-height: 44px; }
+  input[type='checkbox'] { min-width: 24px; min-height: 24px; }
+  .account-shell { padding-right: 16px; padding-left: 16px; }
+  .auth-shell { padding-top: max(32px, env(safe-area-inset-top)); }
+  .account-header h1 { font-size: 1.8rem; }
+  .sheet-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-intro .roll-button { width: 100%; }
+  .sheet-card, .creator-card { padding: 16px; }
+  .sheet-actions .save-button, .sheet-actions .text-button { font-size: .85rem; }
+  .character-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-meta p, .profile-title h1 { overflow-wrap: anywhere; }
+  .creator-card .editor-grid { padding: 0; margin-top: 16px; }
+  .creator-skill-row { grid-template-columns: 24px minmax(0, 1fr) 90px; padding: 8px; }
+  .creator-skill-row select { width: 90px; }
+  .creator-skill-row b { font-size: .85rem; }
+  .skill-row-editing { grid-template-columns: minmax(0, 1fr) auto; }
+  .skill-row-editing > select { grid-column: 1 / -1; width: 100%; }
+  .skill-edit-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .skill-edit-fields label { grid-template-columns: 1fr; }
+  .skill-edit-fields button { grid-column: 1 / -1; min-height: 44px; }
+  .skill-row > div:first-child { min-width: 0; }
+  .skill-values { flex-wrap: wrap; gap: 6px; }
+  .ability-row { min-height: 48px; }
+  .jutsu-entry > div, .custom-ability > div { min-width: 0; }
+  .header-topline { flex-wrap: wrap; }
+  .bottom-nav { padding-right: max(10px, env(safe-area-inset-right)); padding-left: max(10px, env(safe-area-inset-left)); }
+}
+@media (max-width: 350px) {
+  .sheet-toolbar { gap: 8px; }
+  .sheet-toolbar > span { width: 100%; }
+  .sheet-toolbar .save-button { font-size: .75rem; }
+  .creator-skill-row { grid-template-columns: 24px minmax(0, 1fr); }
+  .creator-skill-row select { grid-column: 2; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}
+.sheet-toolbar .save-button { min-height: 44px; min-width: 44px; }
