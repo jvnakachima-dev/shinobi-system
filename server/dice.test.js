@@ -4,8 +4,8 @@ import { normalizeDiceCost } from '../src/dice.js'
 import { calculateSkillValues, createNewSheet, getVisibleSkills } from '../src/sheetModel.js'
 
 test('chakra costs retain dice notation and reject fixed or invalid costs', () => {
-  for (const [input, expected] of [['1d8', '1d8'], [' 2D6 + 2 ', '2d6+2'], ['3d10-1', '3d10-1'], ['1d8+0', '1d8']]) assert.equal(normalizeDiceCost(input), expected)
-  for (const input of ['8', 8, '', '0d8', '1d0', '1d1', '-1d8', '1.5d6', '1d8;alert(1)', '2d6+text', '9999999999999999999d8']) assert.equal(normalizeDiceCost(input), null)
+  for (const [input, expected] of [['1d8', '1d8'], [' 2D6 + 2 ', '2d6+2'], ['3d10-1', '3d10-1'], ['1d8+0', '1d8'], ['2d6+2d8', '2d6+2d8'], [' 2D6 + 2D8 + 2 ', '2d6+2d8+2'], ['2d6+2d8+0', '2d6+2d8'], ['2d6-1d4+2', '2d6-1d4+2']]) assert.equal(normalizeDiceCost(input), expected)
+  for (const input of ['8', 8, '', '0d8', '1d0', '1d1', '-1d8', '1.5d6', '1d8;alert(1)', '2d6+text', '2d6+0d8', '2d6+2d1', '2d6++2d8', '2d6*2d8', '2d6/2d8', '2d6+2d8+', '2d6+(2d8)', '9999999999999999999d8']) assert.equal(normalizeDiceCost(input), null)
 })
 
 test('old sheets gain untrained INT Percepção without changing saved skill data', () => {
