@@ -137,7 +137,7 @@ progress::-moz-progress-bar { border-radius: 99px; background: #d13b46; }
 
 /* Cartão de personagem: a imagem escolhida vira o fundo da ficha, sem esconder os dados. */
 .character-header { position: relative; isolation: isolate; overflow: hidden; padding: 18px; border: 1px solid #a36c35; border-left: 4px solid #e8b344; background: linear-gradient(110deg, rgba(21, 16, 13, .96) 12%, rgba(21, 16, 13, .75) 58%, rgba(21, 16, 13, .38)); }
-.character-header::before { position: absolute; inset: 0; z-index: -2; background: var(--character-portrait, url('./assets/konoha-night.png')) center 28% / cover; content: ''; opacity: .7; }
+.character-header::before { position: absolute; inset: 0; z-index: -2; background: url('./assets/konoha-night.png') center 28% / cover; content: ''; opacity: .7; }
 .character-header::after { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(15, 12, 12, .96) 5%, rgba(15, 12, 12, .77) 55%, rgba(15, 12, 12, .25)); content: ''; }
 .header-topline { align-items: flex-start; }
 .header-topline > span { display: flex; gap: 6px; }
@@ -209,7 +209,7 @@ progress::-moz-progress-bar { border-radius: 99px; background: #d13b46; }
 .custom-ability-form textarea { min-height: 75px; resize: vertical; }
 
 :root[data-theme='light'] .character-header { background: linear-gradient(110deg, rgba(255, 247, 228, .94), rgba(255, 247, 228, .66) 62%, rgba(255, 247, 228, .22)); }
-:root[data-theme='light'] .character-header::before { background-image: var(--character-portrait, url('./assets/konoha-day.png')); opacity: .52; }
+:root[data-theme='light'] .character-header::before { background-image: url('./assets/konoha-day.png'); opacity: .52; }
 :root[data-theme='light'] .character-header::after { background: linear-gradient(90deg, rgba(255, 247, 228, .9), rgba(255, 247, 228, .56) 60%, rgba(255, 247, 228, .12)); }
 :root[data-theme='light'] .profile-title h1, :root[data-theme='light'] .character-name-input { color: #3c2719; text-shadow: none; }
 :root[data-theme='light'] .character-meta p { background: rgba(255, 245, 218, .78); color: #432b1b; }
@@ -231,3 +231,8 @@ progress::-moz-progress-bar { border-radius: 99px; background: #d13b46; }
 :root[data-theme='light'] .custom-ability-form input, :root[data-theme='light'] .custom-ability-form textarea { background: #fff8e9; color: #422a19; }
 
 @media (max-width: 380px) { .character-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } .header-resources { grid-template-columns: 1fr; gap: 10px; } }
+
+/* Use an image layer: large data URLs exceed browser CSS variable limits. */
+.header-portrait { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; opacity: .7; pointer-events: none; }
+.character-header.has-portrait::before, :root[data-theme='light'] .character-header.has-portrait::before { background-image: none; }
+:root[data-theme='light'] .header-portrait { opacity: .52; }

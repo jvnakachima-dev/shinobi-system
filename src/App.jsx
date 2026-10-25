@@ -184,7 +184,8 @@ function App({ initialSheet, onSave, onBack }) {
     <main className="character-sheet">
       <div className="sheet-toolbar"><button className="save-button" disabled={saving} onClick={back}>← Minhas fichas</button><button className="save-button" disabled={saving || !dirty} onClick={saveNow}>{saving ? 'Salvando…' : 'Salvar ficha'}</button><span role="status">{dirty ? 'Alterações não salvas' : 'Ficha salva'}</span><p>{sheet.sessionName || 'Encontro'}</p>{saveMessage && <p role="status">{saveMessage}</p>}</div>
       <div className="theme-background" aria-hidden="true" />
-      <header className="character-header" style={sheet.portrait ? { '--character-portrait': `url(${sheet.portrait})` } : undefined}>
+      <header className={`character-header ${sheet.portrait ? 'has-portrait' : ''}`}>
+        {sheet.portrait && <img className="header-portrait" src={sheet.portrait} alt="" aria-hidden="true" draggable={false} />}
         <div className="header-topline"><p className="eyebrow">Ficha shinobi</p><span><button className="save-button" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀ Claro' : '☾ Escuro'}</button> <button className="save-button edit-button" type="button" onClick={() => setIsEditing((current) => !current)}>{isEditing ? 'Concluir' : 'Editar'}</button></span></div>
         <div className="profile-title"><label className={`portrait-picker ${isEditing ? 'editing' : ''}`} title={isEditing ? 'Alterar foto' : 'Foto do personagem'}><input type="file" accept="image/*" onChange={updatePortrait} />{sheet.portrait ? <img src={sheet.portrait} alt={`Retrato de ${sheet.name}`} /> : <span>忍</span>}</label>{isEditing ? <input className="character-name-input" name="name" value={sheet.name} onChange={updateText} aria-label="Nome do personagem" /> : <h1>{sheet.name}</h1>}</div>
         <div className="character-meta">

@@ -20,6 +20,27 @@ try {
     await page.addInitScript(() => { Math.random = () => 0.11 })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
+    async function checkPortraitBackground() {
+      await page.waitForFunction(() => {
+        const image = document.querySelector('.character-header .header-portrait')
+        return image?.complete && image.naturalWidth > 0
+      })
+      const painted = await page.evaluate(() => {
+        const header = document.querySelector('.character-header')
+        const image = header.querySelector('.header-portrait')
+        const avatar = header.querySelector('.portrait-picker img')
+        const bounds = image.getBoundingClientRect()
+        const headerBounds = header.getBoundingClientRect()
+        const style = getComputedStyle(image)
+        return {
+          matchesAvatar: image.src === avatar.src,
+          coversHeader: Math.abs(bounds.width - header.clientWidth) <= 1 && Math.abs(bounds.height - header.clientHeight) <= 1 && Math.abs(bounds.top - headerBounds.top) <= 2,
+          visible: style.display !== 'none' && style.visibility === 'visible' && Number(style.opacity) > 0,
+          defaultHidden: getComputedStyle(header, '::before').backgroundImage === 'none',
+        }
+      })
+      assert.ok(painted.matchesAvatar && painted.coversHeader && painted.visible && painted.defaultHidden, 'The saved portrait must render behind the header instead of the default image')
+    }
     async function layout(label) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
       assert.equal(overflow, false, `${label}: horizontal page overflow at ${width}px`)
@@ -52,6 +73,13 @@ try {
     await page.getByRole('button', { name: 'Criar ficha', exact: true }).tap()
     await page.getByRole('heading', { name: 'Akira Uchiha', exact: true }).waitFor()
     await layout('character sheet')
+    const defaultBackground = await page.locator('.character-header').evaluate(header => getComputedStyle(header, '::before').backgroundImage)
+    assert.notEqual(defaultBackground, 'none')
+    await page.getByRole('button', { name: /Claro/ }).tap()
+    const lightBackground = await page.locator('.character-header').evaluate(header => getComputedStyle(header, '::before').backgroundImage)
+    assert.notEqual(lightBackground, 'none')
+    assert.notEqual(lightBackground, defaultBackground)
+    await page.getByRole('button', { name: /Escuro/ }).tap()
     for (const name of ['Diminuir PV', 'Aumentar PV', 'Salvar ficha']) {
       const rect = await page.getByRole('button', { name, exact: true }).boundingBox()
       assert.ok(rect.height >= 44 && rect.width >= 44, `${name}: insufficient touch area`)
@@ -63,11 +91,25 @@ try {
       const sample = readFileSync(new URL('../src/assets/hero.png', import.meta.url))
       const photo = Buffer.concat([sample, Buffer.alloc(2_500_000 - sample.length)])
       const upload = page.locator('.portrait-picker input[type="file"]')
+      await upload.setInputFiles({ name: 'foto-pequena.png', mimeType: 'image/png', buffer: sample })
+      await checkPortraitBackground()
       await upload.setInputFiles({ name: 'foto-limite.png', mimeType: 'image/png', buffer: photo })
       const portrait = page.getByRole('img', { name: 'Retrato de Akira Uchiha', exact: true })
       await portrait.waitFor()
-      await page.waitForFunction(() => document.querySelector('.portrait-picker img')?.naturalWidth > 0)
+      await page.waitForFunction(() => {
+        const avatar = document.querySelector('.portrait-picker img')
+        return avatar?.complete && avatar.naturalWidth > 0 && avatar.getAttribute('src').length === 22 + Math.ceil(2_500_000 / 3) * 4
+      })
       expectedPortrait = await portrait.getAttribute('src')
+      await checkPortraitBackground()
+      await page.getByRole('button', { name: /Claro/ }).tap()
+      await checkPortraitBackground()
+      await page.getByRole('button', { name: /Escuro/ }).tap()
+      await checkPortraitBackground()
+      if (process.env.MOBILE_SCREENSHOT_DIR) {
+        mkdirSync(process.env.MOBILE_SCREENSHOT_DIR, { recursive: true })
+        await page.locator('.character-header').screenshot({ path: join(process.env.MOBILE_SCREENSHOT_DIR, 'foto-fundo-celular.png') })
+      }
       assert.equal(expectedPortrait.length, 22 + Math.ceil(2_500_000 / 3) * 4)
       await upload.setInputFiles({ name: 'foto-acima-do-limite.png', mimeType: 'image/png', buffer: Buffer.concat([photo, Buffer.alloc(1)]) })
       await page.getByText('Use uma imagem de até 2,5 MB.', { exact: true }).waitFor()
@@ -129,6 +171,7 @@ try {
     await layout('copy encounter dialog')
     await page.getByRole('button', { name: 'Criar cópia do encontro', exact: true }).tap()
     await page.getByRole('heading', { name: 'Akira Uchiha', exact: true }).waitFor()
+    if (expectedPortrait) await checkPortraitBackground()
     await page.getByRole('button', { name: 'Diminuir PV', exact: true }).tap()
     await page.getByRole('button', { name: 'Salvar ficha', exact: true }).tap()
     await page.getByText('Ficha salva na sua conta.', { exact: true }).waitFor()
@@ -145,6 +188,12 @@ try {
     if (expectedPortrait) assert.ok(saved.sheets.every(record => record.data.portrait === expectedPortrait), 'Full 2.5 MB portrait must survive saving, encounter copying and reloading')
     assert.ok(saved.sheets.every(record => record.data.skills.Percepção.chosen && record.data.skills.Percepção.manualValues.normal === 75))
     if (width === 390) {
+      await page.locator('.sheet-card').filter({ has: page.getByText('Encontro 1', { exact: true }) }).getByRole('button', { name: 'Abrir ficha', exact: true }).tap()
+      await checkPortraitBackground()
+      await page.getByRole('button', { name: /Claro/ }).tap()
+      await checkPortraitBackground()
+      await page.getByRole('button', { name: /Escuro/ }).tap()
+      await page.getByRole('button', { name: /Minhas fichas/ }).tap()
       const legacy = createNewSheet()
       legacy.name = 'Personagem antigo'
       delete legacy.skills.Percepção
